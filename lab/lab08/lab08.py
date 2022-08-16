@@ -1,3 +1,6 @@
+from readline import get_current_history_length
+
+
 def make_generators_generator(g):
     """Generates all the "sub"-generators of the generator returned by
     the generator function g.
@@ -33,4 +36,16 @@ def make_generators_generator(g):
     9
     """
     "*** YOUR CODE HERE ***"
+    n=0
+    gcount=iter(g())
+    length=len(list(gcount))
+    def subgen(g,t):
+        for _ in range(t):
+            yield (next(g))
+           
+    while n<length:
+        g1=iter(g())
+        n=n+1
+        yield subgen(g1,n)#Finished
+        
 
