@@ -1,6 +1,8 @@
 """CS 61A presents Ants Vs. SomeBees."""
 
 import random
+from sys import implementation
+from turtle import distance
 from ucb import main, interact, trace
 from collections import OrderedDict
 
@@ -27,6 +29,9 @@ class Place:
         # Phase 1: Add an entrance to the exit
         # BEGIN Problem 2
         "*** YOUR CODE HERE ***"
+        if self.exit != None:
+            self.exit.entrance = self#Assume it has exit, then exit's entrance is itself
+            #by constructing exit first we can allocate Entrance
         # END Problem 2
 
     def add_insect(self, insect):
@@ -158,6 +163,7 @@ class HarvesterAnt(Ant):
     name = 'Harvester'
     implemented = True
     # OVERRIDE CLASS ATTRIBUTES HERE
+    food_cost = 2
 
     def action(self, gamestate):
         """Produce 1 additional food for the colony.
@@ -166,6 +172,7 @@ class HarvesterAnt(Ant):
         """
         # BEGIN Problem 1
         "*** YOUR CODE HERE ***"
+        gamestate.food += 1
         # END Problem 1
 
 
@@ -176,6 +183,9 @@ class ThrowerAnt(Ant):
     implemented = True
     damage = 1
     # ADD/OVERRIDE CLASS ATTRIBUTES HERE
+    lower_bound = -1
+    upper_bound = float('inf')
+    food_cost = 3
 
     def nearest_bee(self):
         """Return the nearest Bee in a Place that is not the HIVE, connected to
@@ -184,7 +194,15 @@ class ThrowerAnt(Ant):
         This method returns None if there is no such Bee (or none in range).
         """
         # BEGIN Problem 3 and 4
-        return random_bee(self.place.bees)  # REPLACE THIS LINE
+        place0=self.place
+        distan=0
+        while place0.is_hive != 1:
+            if self.lower_bound <= distan <= self.upper_bound and place0.bees != []:
+                return random_bee(place0.bees)
+            else:
+                place0 = place0.entrance
+                distan += 1
+        return None
         # END Problem 3 and 4
 
     def throw_at(self, target):
@@ -215,7 +233,9 @@ class ShortThrower(ThrowerAnt):
     food_cost = 2
     # OVERRIDE CLASS ATTRIBUTES HERE
     # BEGIN Problem 4
-    implemented = False   # Change to True to view in the GUI
+    upper_bound = 3
+    lower_bound = -1
+    implemented = True   # Change to True to view in the GUI
     # END Problem 4
 
 
@@ -226,7 +246,9 @@ class LongThrower(ThrowerAnt):
     food_cost = 2
     # OVERRIDE CLASS ATTRIBUTES HERE
     # BEGIN Problem 4
-    implemented = False   # Change to True to view in the GUI
+    upper_bound = float('inf')
+    lower_bound = 5
+    implemented = True   # Change to True to view in the GUI
     # END Problem 4
 
 
@@ -238,6 +260,7 @@ class FireAnt(Ant):
     food_cost = 5
     # OVERRIDE CLASS ATTRIBUTES HERE
     # BEGIN Problem 5
+
     implemented = False   # Change to True to view in the GUI
     # END Problem 5
 
@@ -245,6 +268,7 @@ class FireAnt(Ant):
         """Create an Ant with a HEALTH quantity."""
         super().__init__(health)
 
+    #@trace
     def reduce_health(self, amount):
         """Reduce health by AMOUNT, and remove the FireAnt from its place if it
         has no health remaining.
@@ -254,14 +278,58 @@ class FireAnt(Ant):
         """
         # BEGIN Problem 5
         "*** YOUR CODE HERE ***"
+        target = self.place.bees[:]
+        n=0
+        while n < len(target):
+            if target[n].health > amount:
+                Insect.reduce_health(target[n],amount)
+                n += 1
+            else:
+                Insect.reduce_health(target[n],amount)
+              
+        self.place.bees = target
+
+        if self.health-amount <= 0:
+            n=0
+            while n < len(target):
+              if target[n].health > self.damage:
+                Insect.reduce_health(target[n],self.damage)
+                n += 1
+              else:
+                Insect.reduce_health(target[n],self.damage)
+            self.place.bees = target
+        Ant.reduce_health(self,amount)
+
+        ########################
+        #unfinished for test 14#
+        ########################
+
+
         # END Problem 5
 
 # BEGIN Problem 6
 # The WallAnt class
+class WallAnt(Ant):
+    name = 'Wall'
+    implemented = True
+    food_cost = 4
+
+    def __init__(self, health=4):
+        super().__init__(health)      
+
 # END Problem 6
 
 # BEGIN Problem 7
 # The HungryAnt Class
+
+class HungryAnt(ThrowerAnt):
+    name = 'Hungry'
+    implemented = False
+    food_cost = 
+
+
+
+
 # END Problem 7
 
 
@@ -303,6 +371,7 @@ class ContainerAnt(Ant):
     def action(self, gamestate):
         # BEGIN Problem 8a
         "*** YOUR CODE HERE ***"
+
         # END Problem 8a
 
 
