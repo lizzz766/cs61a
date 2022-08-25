@@ -137,7 +137,15 @@ class Ant(Insect):
             place.ant = self
         else:
             # BEGIN Problem 8b
-            assert place.ant is None, 'Two ants in {0}'.format(place)
+            # assert place.ant is None, 'Two ants in {0}'.format(place)
+            if self.is_container and place.ant.is_container == False:
+                self.store_ant(place.ant)
+                place.ant = self
+            elif self.is_container == False and place.ant.is_container:
+                place.ant.store_ant(self)
+            else:
+                assert False , 'Two ants in {0}'.format(place)
+
             # END Problem 8b
         Insect.add_to(self, place)
 
@@ -322,12 +330,33 @@ class WallAnt(Ant):
 # BEGIN Problem 7
 # The HungryAnt Class
 
-class HungryAnt(ThrowerAnt):
+class HungryAnt(Ant):
     name = 'Hungry'
-    implemented = False
-    food_cost = 
+    implemented = True
+    food_cost = 4
+    chewing_turns = 3
+    lower_bound = 0
+    upper_bound = 0
+
+    def __init__(self, health=1):
+        self.turns_to_chew = 0
+        super().__init__(health)
 
 
+        
+
+    def nearest_bee(self):
+        return ThrowerAnt.nearest_bee(self)
+
+    def action(self, gamestate):
+        target = self.nearest_bee()
+        if self.turns_to_chew != 0:
+            self.turns_to_chew -= 1
+        elif target != None:
+            Ant.reduce_health(target,target.health)
+            self.turns_to_chew = self.chewing_turns
+        else:
+            self.turns_to_chew = 0
 
 
 # END Problem 7
@@ -339,18 +368,28 @@ class ContainerAnt(Ant):
     """
     is_container = True
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, health, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.health = health
         self.ant_contained = None
 
     def can_contain(self, other):
         # BEGIN Problem 8a
         "*** YOUR CODE HERE ***"
+        if self.ant_contained == None and other.is_container == False:
+            return True
+        else:
+            return False
         # END Problem 8a
 
     def store_ant(self, ant):
         # BEGIN Problem 8a
         "*** YOUR CODE HERE ***"
+        if self.can_contain(ant):
+            self.ant_contained = ant
+            # self.place.add_insect(self)
+        else:
+            assert False,  'Two ants in {0}'.format(self.place)#"{} cannot contain {}".format(self, ant)
         # END Problem 8a
 
     def remove_ant(self, ant):
@@ -371,6 +410,8 @@ class ContainerAnt(Ant):
     def action(self, gamestate):
         # BEGIN Problem 8a
         "*** YOUR CODE HERE ***"
+        if self.ant_contained != None:
+            self.ant_contained.action(gamestate)
 
         # END Problem 8a
 
@@ -382,7 +423,9 @@ class BodyguardAnt(ContainerAnt):
     food_cost = 4
     # OVERRIDE CLASS ATTRIBUTES HERE
     # BEGIN Problem 8c
-    implemented = False   # Change to True to view in the GUI
+    implemented = True   # Change to True to view in the GUI
+    def __init__(self, health = 2, *args, **kwargs):
+        super().__init__(health, *args, **kwargs)
     # END Problem 8c
 
 # BEGIN Problem 9
