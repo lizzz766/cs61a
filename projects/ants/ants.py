@@ -57,6 +57,7 @@ class Insect:
 
     damage = 0
     # ADD CLASS ATTRIBUTES HERE
+    is_waterproof = False
 
     def __init__(self, health, place=None):
         """Create an Insect with a health amount and a starting PLACE."""
@@ -162,6 +163,7 @@ class Ant(Insect):
         """Double this ants's damage, if it has not already been doubled."""
         # BEGIN Problem 12
         "*** YOUR CODE HERE ***"
+        self.damage = 2* self.damage
         # END Problem 12
 
 
@@ -286,26 +288,38 @@ class FireAnt(Ant):
         """
         # BEGIN Problem 5
         "*** YOUR CODE HERE ***"
-        target = self.place.bees[:]
+        copy = self.place.bees[:]
         n=0
-        while n < len(target):
-            if target[n].health > amount:
-                Insect.reduce_health(target[n],amount)
-                n += 1
-            else:
-                Insect.reduce_health(target[n],amount)
+
+        def reflected_damage(amount):
+            remaining_bees = []
+            for bee in self.place.bees:
+                if bee.health > amount:
+                    remaining_bees.append(bee)
+            for bee in copy:
+                Insect.reduce_health(bee, amount)
+            self.place.bees = remaining_bees
+
+        reflected_damage(amount)
+        #while n < len(target):
+        #   if target[n].health > amount:
+        #        target[n].reduce_health(amount)
+        #        n += 1
+        #    else:
+        #        target[n].reduce_health(amount)
               
-        self.place.bees = target
+        #self.place.bees = target
 
         if self.health-amount <= 0:
-            n=0
-            while n < len(target):
-              if target[n].health > self.damage:
-                Insect.reduce_health(target[n],self.damage)
-                n += 1
-              else:
-                Insect.reduce_health(target[n],self.damage)
-            self.place.bees = target
+            reflected_damage(self.damage)
+        #   n = 0
+        #    while n < len(target):
+        #      if target[n].health > self.damage:
+        #       target[n].reduce_health(self.damage)
+        #        n += 1
+        #      else:
+        #        target[n].reduce_health(self.damage)
+        #    self.place.bees = target
         Ant.reduce_health(self,amount)
 
         ########################
@@ -430,6 +444,27 @@ class BodyguardAnt(ContainerAnt):
 
 # BEGIN Problem 9
 # The TankAnt class
+class TankAnt(ContainerAnt):
+
+    name = 'Tank'
+    food_cost = 6
+    damage = 1 
+    implemented = False
+    def __init__(self, health = 2, *args, **kwargs):
+        super().__init__(health, *args, **kwargs)
+    
+    
+    def action(self, gamestate):
+        target = self.place.bees[:]
+        n=0
+        while n < len(target):
+            if target[n].health > self.damage:
+                Insect.reduce_health(target[n],self.damage)
+                n += 1
+            else:
+                Insect.reduce_health(target[n],self.damage)             
+        self.place.bees = target
+        return super().action(gamestate)
 # END Problem 9
 
 
@@ -441,10 +476,20 @@ class Water(Place):
         its health to 0."""
         # BEGIN Problem 10
         "*** YOUR CODE HERE ***"
+        Place.add_insect(self,insect)
+        if insect.is_waterproof == False:
+            insect.reduce_health(insect.health)
         # END Problem 10
 
 # BEGIN Problem 11
 # The ScubaThrower class
+class ScubaThrower(ThrowerAnt):
+    food_cost = 6
+    is_waterproof = True
+    name = 'Scuba'
+    implemented = True
+    def __init__(self, health=1):
+        super().__init__(health)
 # END Problem 11
 
 # BEGIN Problem 12
@@ -458,6 +503,7 @@ class QueenAnt(Ant):  # You should change this line
     food_cost = 7
     # OVERRIDE CLASS ATTRIBUTES HERE
     # BEGIN Problem 12
+    is_waterproof = True
     implemented = False   # Change to True to view in the GUI
     # END Problem 12
 
@@ -504,6 +550,7 @@ class Bee(Insect):
     name = 'Bee'
     damage = 1
     # OVERRIDE CLASS ATTRIBUTES HERE
+    is_waterproof = True
 
     def sting(self, ant):
         """Attack an ANT, reducing its health by 1."""
@@ -612,6 +659,7 @@ class ScaryThrower(ThrowerAnt):
     def throw_at(self, target):
         # BEGIN Problem EC
         "*** YOUR CODE HERE ***"
+
         # END Problem EC
 
 
