@@ -2,6 +2,7 @@
 
 import random
 from sys import implementation
+from tokenize import Double
 from turtle import distance
 from ucb import main, interact, trace
 from collections import OrderedDict
@@ -110,6 +111,7 @@ class Ant(Insect):
     implemented = False  # Only implemented Ant classes should be instantiated
     food_cost = 0
     is_container = False
+    doubled = 0
     # ADD CLASS ATTRIBUTES HERE
 
     def __init__(self, health=1):
@@ -163,7 +165,9 @@ class Ant(Insect):
         """Double this ants's damage, if it has not already been doubled."""
         # BEGIN Problem 12
         "*** YOUR CODE HERE ***"
-        self.damage = 2* self.damage
+        if self.doubled == 0:
+            self.damage = 2* self.damage
+            self.doubled = 1
         # END Problem 12
 
 
@@ -495,7 +499,7 @@ class ScubaThrower(ThrowerAnt):
 # BEGIN Problem 12
 
 
-class QueenAnt(Ant):  # You should change this line
+class QueenAnt(ScubaThrower):  # You should change this line
 # END Problem 12
     """The Queen of the colony. The game is over if a bee enters her place."""
 
@@ -503,8 +507,11 @@ class QueenAnt(Ant):  # You should change this line
     food_cost = 7
     # OVERRIDE CLASS ATTRIBUTES HERE
     # BEGIN Problem 12
+    damage = 1
     is_waterproof = True
-    implemented = False   # Change to True to view in the GUI
+    upper_bound = float('inf')
+    lower_bound = 0
+    implemented = True   # Change to True to view in the GUI
     # END Problem 12
 
     @classmethod
@@ -515,6 +522,11 @@ class QueenAnt(Ant):  # You should change this line
         """
         # BEGIN Problem 12
         "*** YOUR CODE HERE ***"
+        if gamestate.Queen == 0:
+            gamestate.Queen = 1
+            return super().construct(gamestate)
+        else:
+            return None
         # END Problem 12
 
     def action(self, gamestate):
@@ -523,6 +535,16 @@ class QueenAnt(Ant):  # You should change this line
         """
         # BEGIN Problem 12
         "*** YOUR CODE HERE ***"
+        ThrowerAnt.throw_at(self,ThrowerAnt.nearest_bee(self))
+        tarplace = self.place.exit
+        while tarplace != None:
+            if tarplace.ant != None:
+                tarplace.ant.double()
+                if tarplace.ant.is_container:
+                    if tarplace.ant.ant_contained != None:
+                        tarplace.ant.ant_contained.double()
+            tarplace = tarplace.exit
+
         # END Problem 12
 
     def reduce_health(self, amount):
@@ -531,6 +553,11 @@ class QueenAnt(Ant):  # You should change this line
         """
         # BEGIN Problem 12
         "*** YOUR CODE HERE ***"
+        if amount >= self.health:
+            ants_lose()
+        return super().reduce_health(amount)
+    def remove_from(self, place):
+        return None
         # END Problem 12
 
 
@@ -603,6 +630,7 @@ class Bee(Insect):
         """
         # BEGIN Problem EC
         "*** YOUR CODE HERE ***"
+
         # END Problem EC
 
 
@@ -803,6 +831,7 @@ class GameState:
         self.active_bees = []
         self.configure(beehive, create_places)
         # BEGIN Problem 12
+        self.Queen = 0
         "*** YOUR CODE HERE ***"
         # END Problem 12
 

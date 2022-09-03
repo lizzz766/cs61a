@@ -1,5 +1,6 @@
 """A Scheme interpreter and its read-eval-print loop."""
-from __future__ import print_function  # Python 2 compatibility
+from __future__ import print_function
+from pyexpat import ExpatError  # Python 2 compatibility
 
 import sys
 
@@ -11,7 +12,7 @@ from ucb import main, trace
 # Eval/Apply #
 ##############
 
-
+#@trace
 def scheme_eval(expr, env, _=None): # Optional third argument is ignored
     """Evaluate Scheme expression EXPR in environment ENV.
 
@@ -31,17 +32,35 @@ def scheme_eval(expr, env, _=None): # Optional third argument is ignored
     if not scheme_listp(expr):
         raise SchemeError('malformed list: {0}'.format(repl_str(expr)))
     first, rest = expr.first, expr.rest
+    #My Function for Mapping
+    #def scm_eval_withenv(expr_new):
+    #   return scheme_eval(expr_new,env)
     if scheme_symbolp(first) and first in SPECIAL_FORMS:
         return SPECIAL_FORMS[first](rest, env)
     else:
         # BEGIN PROBLEM 4
-        "*** YOUR CODE HERE ***"
-        # END PROBLEM 4
+        "*** YOUR CODE HERE ***"        
+        oper = scheme_eval(first, env)  
+        validate_procedure(oper)
 
+        #Lizzz's Rmk:  
+        #When we put in args, the First elem of the Pair(_first, rest): _first need to be a Procedure  
+        #i.e. the eval (Pair(1, nil)) cannot go well because if it is a Pair then the first elem must be a Procedure
+
+        #args = rest.map(scm_eval_withenv)  Privious Method: Can be replaced by Lambda
+        args = rest.map(lambda x: scheme_eval(x,env))    
+        return scheme_apply(oper,args,env)
+        # END PROBLEM 4
+        ###############
+        ###Attention###
+        ###############
+        #I think PROBLEM 4 is not Finished for I didn't think about the INNER ENVIRONMENT OF MAP
+
+        
 def self_evaluating(expr):
     """Return whether EXPR evaluates to itself."""
     return (scheme_atomp(expr) and not scheme_symbolp(expr)) or expr is None
-
+#@trace
 def scheme_apply(procedure, args, env):
     """Apply Scheme PROCEDURE to argument values ARGS (a Scheme list) in
     environment ENV."""
@@ -68,7 +87,17 @@ def eval_all(expressions, env):
     2
     """
     # BEGIN PROBLEM 7
-    return scheme_eval(expressions.first, env) # change this line
+    temp = expressions
+    if temp == nil:
+        return None 
+    elif temp.rest == nil:
+        return scheme_eval(temp.first,env)
+    while temp.rest != nil:
+        scheme_eval(temp.first,env)
+        temp = temp.rest 
+    return scheme_eval(temp.first,env)
+
+    #return scheme_eval(expressions.first, env) # change this line
     # END PROBLEM 7
 
 ################
@@ -93,12 +122,17 @@ class Frame(object):
         """Define Scheme SYMBOL to have VALUE."""
         # BEGIN PROBLEM 2
         "*** YOUR CODE HERE ***"
+        self.bindings[symbol] = value
         # END PROBLEM 2
 
     def lookup(self, symbol):
         """Return the value bound to SYMBOL. Errors if SYMBOL is not found."""
         # BEGIN PROBLEM 2
         "*** YOUR CODE HERE ***"
+        if symbol in self.bindings:
+            return self.bindings[symbol]
+        elif self.parent != None:
+            return self.parent.lookup(symbol)
         # END PROBLEM 2
         raise SchemeError('unknown identifier: {0}'.format(symbol))
 
@@ -116,6 +150,7 @@ class Frame(object):
         """
         # BEGIN PROBLEM 10
         "*** YOUR CODE HERE ***"
+
         # END PROBLEM 10
 
 ##############
@@ -154,6 +189,16 @@ class BuiltinProcedure(Procedure):
         python_args = []
         # BEGIN PROBLEM 3
         "*** YOUR CODE HERE ***"
+        arg = args
+        while arg != nil:
+            python_args += [arg.first]
+            arg = arg.rest
+        if self.use_env:
+            python_args += [env]
+        try:
+            return self.fn(*python_args)
+        except TypeError as e:
+            raise SchemeError("TypeError of input args")
         # END PROBLEM 3
 
 class LambdaProcedure(Procedure):
@@ -175,6 +220,7 @@ class LambdaProcedure(Procedure):
         of values, for a lexically-scoped call evaluated in my parent environment."""
         # BEGIN PROBLEM 11
         "*** YOUR CODE HERE ***"
+
         # END PROBLEM 11
 
     def __str__(self):
@@ -233,11 +279,28 @@ def do_define_form(expressions, env):
     if scheme_symbolp(target):
         validate_form(expressions, 2, 2) # Checks that expressions is a list of length exactly 2
         # BEGIN PROBLEM 5
-        "*** YOUR CODE HERE ***"
+        "*** YOUR CODE HERE ***"       
+        res0 = expressions.rest
+        #############
+        ##IMPORTANT##
+        #############
+        #understand the quote below:
+        res = scheme_eval(res0.first,env)
+        #for expressions = Pair("x", Pair(Pair("+", Pair(1, Pair(2, nil))), nil)) i.e.(x (+ 1 2))
+        #res0 = Pair(Pair("+", Pair(1, Pair(2, nil))), nil) = Pair(3, nil) Cannot be evaled by scheme_eval()
+        env.define(target,res)
+        return target
         # END PROBLEM 5
     elif isinstance(target, Pair) and scheme_symbolp(target.first):
         # BEGIN PROBLEM 9
         "*** YOUR CODE HERE ***"
+        names = target.first
+        vari = target.rest
+        proc = expressions.rest
+        validate_formals(vari)
+        lamb = LambdaProcedure(vari, proc, env)
+        env.define(names, lamb)
+        return names
         # END PROBLEM 9
     else:
         bad_target = target.first if isinstance(target, Pair) else target
@@ -253,6 +316,7 @@ def do_quote_form(expressions, env):
     validate_form(expressions, 1, 1)
     # BEGIN PROBLEM 6
     "*** YOUR CODE HERE ***"
+    return expressions.first
     # END PROBLEM 6
 
 def do_begin_form(expressions, env):
@@ -279,6 +343,7 @@ def do_lambda_form(expressions, env):
     validate_formals(formals)
     # BEGIN PROBLEM 8
     "*** YOUR CODE HERE ***"
+    return LambdaProcedure(formals,expressions.rest,env)
     # END PROBLEM 8
 
 def do_if_form(expressions, env):
@@ -678,6 +743,7 @@ def read_eval_print_loop(next_line, env, interactive=False, quiet=False,
         except EOFError:  # <Control>-D, etc.
             print()
             return
+
 
 def scheme_load(*args):
     """Load a Scheme source file. ARGS should be of the form (SYM, ENV) or
