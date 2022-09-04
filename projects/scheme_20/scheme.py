@@ -1,5 +1,6 @@
 """A Scheme interpreter and its read-eval-print loop."""
 from __future__ import print_function
+from math import exp
 from pyexpat import ExpatError  # Python 2 compatibility
 
 import sys
@@ -150,7 +151,17 @@ class Frame(object):
         """
         # BEGIN PROBLEM 10
         "*** YOUR CODE HERE ***"
-
+        son = Frame(self)
+        formal = formals
+        val = vals
+        while formal != nil and val != nil:           
+            son.define(formal.first,val.first)
+            formal = formal.rest
+            val = val.rest
+        if formal != nil or val != nil:
+            raise SchemeError("Length of frames error")
+        return son
+        
         # END PROBLEM 10
 
 ##############
@@ -215,12 +226,14 @@ class LambdaProcedure(Procedure):
         self.body = body
         self.env = env
 
+
     def make_call_frame(self, args, env):
         """Make a frame that binds my formal parameters to ARGS, a Scheme list
         of values, for a lexically-scoped call evaluated in my parent environment."""
         # BEGIN PROBLEM 11
         "*** YOUR CODE HERE ***"
-
+        newenv = self.env.make_child_frame(self.formals,args)#Not dynamically scoped
+        return newenv
         # END PROBLEM 11
 
     def __str__(self):
@@ -376,6 +389,14 @@ def do_and_form(expressions, env):
     """
     # BEGIN PROBLEM 12
     "*** YOUR CODE HERE ***"
+    if expressions == nil:
+        return True
+    while expressions.rest != nil:
+        if is_true_primitive(scheme_eval(expressions.first, env)):
+            expressions = expressions.rest
+        else:
+            return False
+    return scheme_eval(expressions.first, env)
     # END PROBLEM 12
 
 def do_or_form(expressions, env):
@@ -392,7 +413,13 @@ def do_or_form(expressions, env):
     6
     """
     # BEGIN PROBLEM 12
-    "*** YOUR CODE HERE ***"
+    "*** YOUR CODE HERE ***"   
+    while expressions != nil:
+        if is_false_primitive(scheme_eval(expressions.first, env)):
+            expressions = expressions.rest
+        else:
+            return scheme_eval(expressions.first, env)  
+    return False
     # END PROBLEM 12
 
 def do_cond_form(expressions, env):
@@ -413,6 +440,10 @@ def do_cond_form(expressions, env):
         if is_true_primitive(test):
             # BEGIN PROBLEM 13
             "*** YOUR CODE HERE ***"
+            if clause.rest == nil:
+                return test
+            else:
+                return eval_all(clause.rest,env)
             # END PROBLEM 13
         expressions = expressions.rest
 
@@ -437,6 +468,13 @@ def make_let_frame(bindings, env):
     names, values = nil, nil
     # BEGIN PROBLEM 14
     "*** YOUR CODE HERE ***"
+    bind = bindings
+    while bind != nil:
+        validate_form(bind.first,2,2)
+        names = Pair(bind.first.first,names)
+        values = Pair(scheme_eval(bind.first.rest.first,env),values)
+        bind = bind.rest
+    validate_formals(names)
     # END PROBLEM 14
     return env.make_child_frame(names, values)
 
@@ -563,6 +601,10 @@ class MuProcedure(Procedure):
 
     # BEGIN PROBLEM 15
     "*** YOUR CODE HERE ***"
+    def make_call_frame(self, args, env):
+        newenv = env.make_child_frame(self.formals,args)#Not dynamically scoped
+        return newenv
+
     # END PROBLEM 15
 
     def __str__(self):
@@ -579,6 +621,7 @@ def do_mu_form(expressions, env):
     validate_formals(formals)
     # BEGIN PROBLEM 18
     "*** YOUR CODE HERE ***"
+    return MuProcedure(formals,expressions.rest)
     # END PROBLEM 18
 
 SPECIAL_FORMS['mu'] = do_mu_form
